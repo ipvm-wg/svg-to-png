@@ -7,4 +7,7 @@ edition = "2021"
 
 [dependencies]
 image = "0.24.8"
-nsvg = "0.5.1"
+resvg = { git = "https://github.com/RazrFalcon/resvg", rev = "093bfdd" }
+
+[lib]
+crate-type = ["cdylib", "rlib"]

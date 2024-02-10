@@ -1,24 +1,25 @@
-use image::EncodableLayout;
-use nsvg;
+use resvg::{self, usvg::fontdb::Database};
 
-pub fn rasterize(input: &str) -> Vec<u8> {
-    // Load the SVG data
-    let svg = nsvg::parse_str(input, nsvg::Units::Pixel, 96.0).unwrap();
+pub fn rasterize(input: String) -> Vec<u8> {
+    // Parse SVG data to usvg tree
+    let tree =
+        resvg::usvg::Tree::from_str(&input, &resvg::usvg::Options::default(), &Database::new())
+            .unwrap();
 
-    // Rasterize the loaded SVG and return an RgbaImage
-    let image = svg.rasterize(1.0).unwrap();
-    let (width, height) = image.dimensions();
+    // Convert the size of the tree from floats to ints
+    let tree_size = tree.size().to_int_size();
+    let (width, height) = (tree_size.width(), tree_size.height());
 
-    // Convert image to bytes and encode it as a PNG
-    let mut buf: Vec<u8> = vec![];
-    nsvg::image::png::PNGEncoder::new(&mut buf)
-        .encode(
-            image.to_vec().as_bytes(),
-            width,
-            height,
-            nsvg::image::ColorType::RGBA(8),
-        )
-        .unwrap();
+    // Create a pixmap with the tree's dimensions to store the rendered image
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height).unwrap();
 
-    buf
+    // Render the tree to a pixmap
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::default(),
+        &mut pixmap.as_mut(),
+    );
+
+    // Encode as PNG
+    pixmap.encode_png().unwrap()
 }

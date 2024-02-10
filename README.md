@@ -30,15 +30,23 @@ Our goal is to write a function that rasterizes SVGs to PNG images. The function
 
 We want a Rust library that will do the conversion for us. Our execution environment is Wasmtime. We won't have GPUs or storage available to us, so we want a simple library.
 
-We are going to try out: https://docs.rs/nsvg/latest/nsvg/
+Our initial attempt was to use [nsvg](https://docs.rs/nsvg/latest/nsvg/), but it wraps the C library [nanosvg](https://github.com/memononen/nanosvg), which gives us compilation headaches. Rust and Clang use different calling conventions in their Wasm ABI, so this prevents us from easily compiling the wrapped C code to Wasm.
+
+Next, we tried [resvg](https://docs.rs/resvg/latest/resvg/). It worked great!
 
 ### Try it out in Rust
 
-We started with the [nsvg](https://docs.rs/nsvg/latest/nsvg/) example code and modified it to take an SVG string and return bytes.
+We wrote a `rasterize` function using [resvg](https://docs.rs/resvg/latest/resvg/) that takes an SVG string and returns bytes.
 
-The [nsvg](https://docs.rs/nsvg/latest/nsvg/) library can scale the output image, but in our initial tests we left the scale unchanged.
+We would like to add a scale parameter to our function, but decided to hold off until we have it working as a Wasm function running in Homestar.
 
-Our integration test has an associated test that shows we can convert from an SVG string to bytes.
+Our integration test shows we can convert from an SVG string to bytes.
+
+### Compile to Wasm
+
+A quick test of `cargo build --target wasm32-unknown-unknown` successfully compiled to Wasm.
+
+Note that we needed to add a lib `crate-type` of `cdylib` for the Wasm target and `rlib` for the Rust target used by our integration test.
 
 ### Next Steps
 
