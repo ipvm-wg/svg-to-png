@@ -1,4 +1,19 @@
+wit_bindgen::generate!({
+    world: "svg-to-png",
+    exports: {
+        world: Component,
+    }
+});
+
 use resvg::{self, usvg::fontdb::Database};
+
+pub struct Component;
+
+impl Guest for Component {
+    fn rasterize(input: String) -> Vec<u8> {
+        rasterize(input)
+    }
+}
 
 pub fn rasterize(input: String) -> Vec<u8> {
     // Parse SVG data to usvg tree

@@ -1,0 +1,5 @@
+package fission:svg-to-png@0.1.0
+
+world svg-to-png {
+  export rasterize: func(input: string) -> list<u8>
+}

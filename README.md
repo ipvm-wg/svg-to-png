@@ -48,8 +48,45 @@ A quick test of `cargo build --target wasm32-unknown-unknown` successfully compi
 
 Note that we needed to add a lib `crate-type` of `cdylib` for the Wasm target and `rlib` for the Rust target used by our integration test.
 
+### Write it to compile to a Wasm component
+
+We want to compile our function as a Wasm component. To generate WIT (WebAssembly Interface Types) for our component, we write a WIT world that defines our interface.
+
+The interface is in `wit/host.wit` and it looks like this:
+
+```wit
+package fission:svg-to-png@0.1.0
+
+world svg-to-png {
+  export rasterize: func(input: string) -> list<u8>
+}
+```
+
+The package ID is structured as `namespace:name@semver-version`. The `semver-version` is optional.
+
+The world name matches our module name, but this is not required. A module may contain more than one world, but we only need one here.
+
+Our `rasterize` export is declared as a function in our `svg-to-png` world. The [WIT types](https://component-model.bytecodealliance.org/design/wit.html#built-in-types) correspond to our Rust types. `String` in Rust is string in WIT and `Vec<u8>` in Rust is `list<u8>` in WIT.
+
+In `src/lib.rs`, we use `wit-bindgen::generate!` macro to generate bindings for our world to be implemented by the `Guest` in Rust. The WIT interface expects our `rasterize` function, and we just need to add it to the `Guest` implementation.
+
+Lastly, we can build and componentize our Wasm component:
+
+```sh
+cargo build --target wasm32-unknown-unknown
+wasm-tools component new target/wasm32-unknown-unknown/debug/svg_to_png.wasm -o output/svg_to_png.wasm
+```
+
+We can verify that our Wasm component has the correct WIT interface using `wasm-tools`:
+
+```sh
+wasm-tools component wit output/svg_to_png.wasm
+```
+
+It matches!
+
 ### Next Steps
 
-- Write it to compile to Wasm
 - Write a workflow that uses the function
 - Test it with Homestar
+- Error reporting and handling
