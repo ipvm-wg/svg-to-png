@@ -1,2 +1,5 @@
 /target
 /output/*.wasm
+/.DS_Store
+/examples/cli/homestar
+/examples/cli/homestar.db

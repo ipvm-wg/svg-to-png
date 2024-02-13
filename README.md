@@ -197,6 +197,87 @@ We can extract the PNG from the receipt's `out` field using `jq`. The bytes are 
 ipfs dag get bafyrmiebgewvljpqvzbwcyop7viv6sbuhyu2pvkbgfer44uv3giq3vuaia | jq  -r '.out[1]["/"]["bytes"]' | base64 -d > foo.png
 ```
 
-### Next Steps
+### Error reporting and handling
 
-- Error reporting and handling
+Our initial version of the function dangerously unwraps, which could cause of function to fail if we pass in an invalid SVG or `resvg` is unable to perform the rasterization.
+
+It would be better to log an error when something goes wrong, which requires access to IO through the host environment. WASI is a system interface that we'll use to log errors from our Wasm component, using the `wasi-logging` package for WIT.
+
+To manage this WIT dependency, we'll use a package manager for WIT called `wit-deps`:
+
+```sh
+cargo install wit-deps-cli
+```
+
+We'll start by creating `wit/deps.toml`:
+
+```toml
+logging = "https://github.com/WebAssembly/wasi-logging/archive/main.tar.gz"
+```
+
+This package exposes a `logging` world, which we can import from our `wit/host.wit`:
+
+```wit
+package fission:svg-to-png@0.1.0
+
+world svg-to-png {
+  import wasi:logging/logging;
+
+  export rasterize: func(input: string) -> list<u8>
+}
+```
+
+With these changes, we're now able to log messages from our Wasm component:
+
+```rust
+#[cfg(target_arch = "wasm32")]
+use wasi::logging::logging::{log, Level};
+
+impl Guest for Component {
+    fn rasterize(input: String) -> Vec<u8> {
+        #[cfg(target_arch = "wasm32")]
+        log(Level::Info, "fission:svg-to-png", "rasterizing SVG to PNG");
+
+        rasterize(input)
+    }
+}
+```
+
+The Homstar runtime will capture and include these log messages in its own logging:
+
+```sh
+ts=2024-02-13T22:49:44.904834Z level=info target=homestar_wasm::wasmtime::host::helpers message="rasterizing SVG to PNG" subject=wasm_execution category=fission:svg-to-png
+```
+
+We can now add error reporting to our Wasm component. We update our `rasterize` function to return a result and match on the `Ok` and `Err` cases:
+
+```rust
+match rasterize(input) {
+    Ok(png) => {
+        #[cfg(target_arch = "wasm32")]
+        log(
+            Level::Info,
+            "fission:svg-to-png",
+            "PNG generated successfully!",
+        );
+
+        png
+    }
+    Err(err) => {
+        #[cfg(target_arch = "wasm32")]
+        log(Level::Error, "fission:svg-to-png", err.to_string().as_str());
+
+        panic!();
+    }
+}
+```
+
+In the `Ok` case, we log an info message and return our PNG bytes. In the `Err` case we log an error level message.
+
+We've added a workflow with a broken workflow in `examples/cli/broken_workflow.json`. When we run this workflow, we see an error message in the Homestar logs:
+
+```sh
+ts=2024-02-13T23:03:19.368227Z level=error target=homestar_wasm::wasmtime::host::helpers message="SVG data parsing failed cause expected \'=\' not \'b\' at 1:9" subject=wasm_execution category=fission:svg-to-png
+```
+
+This message was passed up from the error reported by `resvg`.

@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.79"
 image = "0.24.8"
 resvg = { git = "https://github.com/RazrFalcon/resvg", rev = "093bfdd" }
 wit-bindgen = "0.13"

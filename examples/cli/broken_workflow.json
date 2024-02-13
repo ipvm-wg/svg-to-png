@@ -1,0 +1,22 @@
+{
+  "tasks": [
+    {
+      "cause": null,
+      "meta": {
+        "fuel": 18446744073709552000,
+        "memory": 4294967296,
+        "time": 100000
+      },
+      "prf": [],
+      "run": {
+        "input": {
+          "args": ["<svg is broken"],
+          "func": "rasterize"
+        },
+        "nnc": "",
+        "op": "wasm/run",
+        "rsc": "ipfs://bafybeic2gpbow64epwe52satjnowzqo2vdoaxb23tn3xxlycxd7zecefga"
+      }
+    }
+  ]
+}
