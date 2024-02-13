@@ -74,16 +74,32 @@ Lastly, we can build and componentize our Wasm component:
 
 ```sh
 cargo build --target wasm32-unknown-unknown
-wasm-tools component new target/wasm32-unknown-unknown/debug/svg_to_png.wasm -o output/svg_to_png.wasm
+wasm-tools component new target/wasm32-unknown-unknown/debug/svg_to_png.wasm -o output/svg_to_png.component.wasm
 ```
 
 We can verify that our Wasm component has the correct WIT interface using `wasm-tools`:
 
 ```sh
-wasm-tools component wit output/svg_to_png.wasm
+wasm-tools component wit output/svg_to_png.component.wasm
 ```
 
 It matches!
+
+### Optimization interlude
+
+We noticed that our Wasm component is 44.66 MB! That seems a bit much, so we decided to prematuraly optimize. 😇
+
+We set our release profile to an `opt-level` of `s` to optimize for size and `lto` to `true` to enable link time optimizations.
+
+Then we ran a new set of commands that includes `wasm-opt` to optimize even more! We build this time with the release target.
+
+```sh
+cargo build --target wasm32-unknown-unknown --release
+wasm-opt -Os target/wasm32-unknown-unknown/release/svg_to_png.wasm -o output/svg_to_png.wasm
+wasm-tools component new output/svg_to_png.wasm -o output/svg_to_png.component.wasm
+```
+
+These changes bring our Wasm component size down to 3.07 MB. A nice improvement!
 
 ### Next Steps
 

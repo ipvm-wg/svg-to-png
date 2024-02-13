@@ -12,3 +12,10 @@ wit-bindgen = "0.13"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+
+[profile.dev]
+opt-level = 0
+
+[profile.release]
+lto = true
+opt-level = 's'
